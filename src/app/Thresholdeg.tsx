@@ -1,0 +1,179 @@
+import React from 'react'
+import { format } from '@visx/vendor/d3-format'
+import { scaleOrdinal, scaleThreshold } from '@visx/scale'
+import { GlyphStar, GlyphWye, GlyphTriangle, GlyphDiamond } from '@visx/glyph'
+import { Legend, LegendThreshold, LegendItem, LegendLabel } from '@visx/legend'
+
+const thresholdScale = scaleThreshold({
+  domain: [0.01, 0.02, 0.04, 0.06, 0.08],
+  range: ['#f2f0f7', '#dadaeb', '#bcbddc', '#9e9ac8', '#756bb1', '#54278f'],
+})
+
+const ordinalColor2Scale = scaleOrdinal({
+  domain: ['a', 'b', 'c', 'd'],
+  range: ['#fae856', '#f29b38', '#e64357', '#8386f7'],
+})
+
+const shapeScale = scaleOrdinal<string, React.FC | React.ReactNode>({
+  domain: ['a', 'b', 'c', 'd', 'e'],
+  range: [
+    <GlyphStar key="a" size={50} top={50 / 6} left={50 / 6} fill="#dd59b8" />,
+    <GlyphWye key="b" size={50} top={50 / 6} left={50 / 6} fill="#de6a9a" />,
+    <GlyphTriangle
+      key="c"
+      size={50}
+      top={50 / 6}
+      left={50 / 6}
+      fill="#de7d7b"
+    />,
+    <GlyphDiamond
+      key="d"
+      size={50}
+      top={50 / 6}
+      left={50 / 6}
+      fill="#df905f"
+    />,
+    () => (
+      <text key="e" fontSize="12" dy="1em" dx=".33em" fill="#e0a346">
+        $
+      </text>
+    ),
+  ],
+})
+
+function LegendDemo({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="legend">
+      <div className="title">{title}</div>
+      {children}
+      <style jsx>{`
+        .legend {
+          line-height: 0.9em;
+          color: #efefef;
+          font-size: 10px;
+          font-family: arial;
+          padding: 10px 10px;
+          float: left;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 8px;
+          margin: 5px 5px;
+        }
+        .title {
+          font-size: 12px;
+          margin-bottom: 10px;
+          font-weight: 100;
+        }
+      `}</style>
+    </div>
+  )
+}
+
+const legendGlyphSize = 50
+
+export default function ThreshHoldExample({
+  events = false,
+}: {
+  events?: boolean
+}) {
+  return (
+    <div className="legends">
+      <LegendDemo title="Threshold">
+        <LegendThreshold
+          scale={thresholdScale}
+          direction="column-reverse"
+          itemDirection="column"
+        >
+          {(labels) =>
+            labels.reverse().map((label, i) => (
+              <LegendItem
+                key={`legend-quantile-${i}`}
+                margin="1px 0"
+                onClick={() => {
+                  if (events) alert(`clicked: ${JSON.stringify(label)}`)
+                }}
+              >
+                <svg width={legendGlyphSize} height={legendGlyphSize}>
+                  <rect
+                    fill={label.value}
+                    width={legendGlyphSize}
+                    height={legendGlyphSize}
+                  />
+                </svg>
+                <LegendLabel align="right" margin="2px 0 0 10px">
+                  {label.text}
+                </LegendLabel>
+              </LegendItem>
+            ))
+          }
+        </LegendThreshold>
+      </LegendDemo>
+
+      <LegendDemo title="Custom Legend">
+        <Legend scale={shapeScale}>
+          {(labels) => (
+            <div style={{ display: 'flex', flexDirection: 'row' }}>
+              {labels.map((label, i) => {
+                const color = ordinalColor2Scale(label.datum)
+                const shape = shapeScale(label.datum)
+                const isValidElement = React.isValidElement(shape)
+                return (
+                  <LegendItem
+                    key={`legend-quantile-${i}`}
+                    margin="0 4px 0 0"
+                    flexDirection="column"
+                    onClick={() => {
+                      const { datum, index } = label
+                      if (events)
+                        alert(
+                          `clicked: ${JSON.stringify({ datum, color, index })}`
+                        )
+                    }}
+                  >
+                    <svg
+                      width={legendGlyphSize}
+                      height={legendGlyphSize}
+                      style={{ margin: '0 0 8px 0' }}
+                    >
+                      {isValidElement
+                        ? React.cloneElement(shape as React.ReactElement)
+                        : React.createElement(
+                            shape as React.ComponentType<{ fill: string }>,
+                            {
+                              fill: color,
+                            }
+                          )}
+                    </svg>
+                    <LegendLabel align="left" margin={0}>
+                      {label.text}
+                    </LegendLabel>
+                  </LegendItem>
+                )
+              })}
+            </div>
+          )}
+        </Legend>
+      </LegendDemo>
+
+      <style jsx>{`
+        .legends {
+          font-family: arial;
+          font-weight: 900;
+          background-color: black;
+          border-radius: 14px;
+          padding: 24px 24px 24px 32px;
+          overflow-y: auto;
+          flex-grow: 1;
+        }
+        .chart h2 {
+          margin-left: 10px;
+        }
+      `}</style>
+    </div>
+  )
+}
